@@ -1,2 +1,2 @@
 # gfx
-A series tips and tricks about creative animated and graphical effects in java
+A series of tips and tricks about creative animated and graphical effects in java
