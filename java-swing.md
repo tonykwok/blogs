@@ -24,5 +24,5 @@ http://alexruiz.developerblogs.com/ (original workes at SUN, and now in Google A
 
 http://djproject.sourceforge.net/main/index.html (Native Swing)
 
-
+http://jfpoilpret.blogspot.com/ (https://designgridlayout.java.net/)
 
