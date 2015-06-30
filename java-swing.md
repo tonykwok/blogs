@@ -26,3 +26,4 @@ http://djproject.sourceforge.net/main/index.html (Native Swing)
 
 http://jfpoilpret.blogspot.com/ (https://designgridlayout.java.net/)
 
+http://java-swing-tips.blogspot.com/2010/08/kinetic-scrolling-jscrollpane.html
