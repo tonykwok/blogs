@@ -20,5 +20,7 @@ http://www.teamdev.com/jxbrowser
 
 http://zef.me/blog/545/java-swing-history
 
+http://alexruiz.developerblogs.com/ (original workes at SUN, and now in Google Android team)
+
 
 
