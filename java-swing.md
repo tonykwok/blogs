@@ -28,6 +28,10 @@ http://jfpoilpret.blogspot.com/ (https://designgridlayout.java.net/)
 
 http://java-swing-tips.blogspot.com/2010/08/kinetic-scrolling-jscrollpane.html
 
+http://dickwallsblog.blogspot.com/2006/09/jflubber-reloaded.html (http://code.google.com/p/jflubber/)
+
+http://www.guigarage.com/ (JavaFX)
+
 https://www.java.net/blogs/chet
 (I worked as an architect in the Java Client Group at Sun, followed by a stint at Adobe on the Flex SDK team. I can now be found at Google, working on the Android SDK. I co-authored the book Filthy Rich Clients with Romain Guy. I also wrote the book Flex 4 Fun, about the graphical and animated side of Flex. You can see what I'm up to now on my blog Codedependent, where I post articles, demos, code, and videos on graphics, animation, and other geeky-fun topics. You can also check out the lighter side of my interests on my comedy blog at chetchat.blogspot.com, or in my book When I am King..., available from Amazon.com.)
 
@@ -45,6 +49,9 @@ https://www.java.net/blogs/shan_man - BeanBinding
 
 https://www.java.net/blogs/zixle - Extreme GUI Makeover: 2006 (Email Client)
 (Scott Violet has been in the Java client group at Sun for over eight years. He started out at Sun in the OpenStep group (what is now Cocoa), and then joined the Java Software group working on Swing. He has helped with Java Web Start, NetBeans, and Glow. Today he is the architect for Swing and has been working on the project since long before the 1.0 release.)
+
+https://www.java.net/blogs/joshy - (Leonardo Sketch http://projects.joshy.org/Leonardo/)
+(Josh Marinacci first tried Java in 1995 at the request of his favorite TA and never looked back. He is a blogger and co-author of Swing Hacks for O’Reilly. He is currently a Developer Advocate for the webOS at Palm, Inc. He previously worked on JavaFX, Swing, NetBeans, and client lead for the Java Store at Sun Microsystems. Josh lives in Eugene, Oregon and is passionate about open source technology & great user interfaces. He uses a Palm Pre, MacBook Pro, and Nikon D50 SLR to spread understanding of great design in software.)
 
 
 
