@@ -40,6 +40,12 @@ https://www.java.net/blogs/rah003 - flip list
 https://www.java.net/blogs/hansmuller - split layout manager
 (Hans is the CTO for Sun's Desktop division. He's been at Sun for over 15 years and has been involved with desktop GUI work of one kind another for nearly all of that time. He's been involved with the Java project since its earliest days and led the Swing team and later all of the client Java work at Sun.)
 
+https://www.java.net/blogs/shan_man - BeanBinding
+(Shannon Hickey is Technical Lead for the Swing team at Sun Microsystems. As a member of the team for the last five years, he has become intimately familiar with the toolkit, of which he now guides the technical direction. Shannon is also personally responsible for enhancing multiple areas, including the Swing drag and drop experience. You'll find him frequenting the Swing & AWT forum on JavaDesktop.org where he loves chatting with the community and answering questions.)
+
+https://www.java.net/blogs/zixle - Extreme GUI Makeover: 2006 (Email Client)
+(Scott Violet has been in the Java client group at Sun for over eight years. He started out at Sun in the OpenStep group (what is now Cocoa), and then joined the Java Software group working on Swing. He has helped with Java Web Start, NetBeans, and Glow. Today he is the architect for Swing and has been working on the project since long before the 1.0 release.)
+
 
 
 
