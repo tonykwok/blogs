@@ -82,6 +82,7 @@ if [ $# != 2 ]; then
     "/data/app")
         APK_FILE_TYPE=3
         print "$APK_FILE_NAME is not a system app, please use 'adb install -r $APK_FILE_PATH' instead!"
+        exit 1
         ;;
     "/system/priv-app")
         APK_FILE_TYPE=2
