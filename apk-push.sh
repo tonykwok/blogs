@@ -21,10 +21,11 @@ function pause() {
     stty $OLDCONFIG
 }
 
-function waitKeyInput() {
-   read -n1 -r ans
-   case "$ans" in
-        [Cc]|[Cc])
+function scan() {
+    echo -e "\033[32;49;1mI: $1\033[39;49;0m\c"
+    read -n1 -r ans
+    case "$ans" in
+        [Yy])
             # continue
             echo ""
         ;;
@@ -32,7 +33,7 @@ function waitKeyInput() {
         *)
             exit 0
         ;;
-   esac
+    esac
 }
 
 if [ $# -lt 1 ]; then
@@ -122,8 +123,7 @@ TARGET_INSTALL_FOLDER=${APK_PATH[index]}
 
 
 # waiting for user's confirmation
-print "The old apk will be uninstalled or removed before pushing the new one to $TARGET_INSTALL_FOLDER, continue [C] or abort [A]?"
-waitKeyInput
+scan "The old apk will be uninstalled or removed before pushing the new one to $TARGET_INSTALL_FOLDER, continue? (y/N)"
 
 if [ $KEYWORDS != "#UNDEFINED#" ]; then
     print "Unistall the old apk, package: $APK_PKG_NAME, keyword: $KEYWORDS"
@@ -263,8 +263,7 @@ if [ $NATIVE_LIB_COUNT -gt 0 ]; then
     fi
 fi
 
-print "Reboot is required to make changes effective, continue [C] or abort [A]?"
-waitKeyInput
+scan "Reboot is required to make changes effective, continue? (y/N)"
 
 adb reboot
 print "Rebooting..."
