@@ -1,0 +1,81 @@
+Skip navigation
+Oracle Community DirectoryOracle Community FAQGo Directly To Log inRegister
+Search
+More documents in Article Archive 
+Fling Scroller Blog
+
+Version 2
+Created by chrisadamson on Sep 25, 2007 10:28 PM. Last modified by chrisadamson on Nov 20, 2015 11:56 AM.
+{cs.r.title}
+
+
+Contents
+A Quick Look atJList
+Adding the Motion
+Smooth and Tidy
+Transferring the Effect to Other Components
+Conclusion
+Resources
+Writing an application that is appealing to the user is not an easy task. While there are many cool and easy-to-use applications out there, there are even more applications that users are not very happy with. Part of the problem is that the target audience keeps changing, continuously bringing new challenges and always leaving space for improvement. What this article tries to show you will not transform any application into a glamorous super tool, but will definitively ease the pain of using it, especially for mobile users. The change we will discuss here is subtle and easy to miss in the application when used from the desktop; however, its benefits become more apparent when used from notebooks via touchpad or from touchscreens. Since the use of these devices increases every day, the importance of making applications easy to use for users of such devices increases as well.
+What is this mysterious feature that will appeal to your mobile users? It's an enhancement to the default scrolling functionality. Let's have a closer look at lists, which seem to be the most common case of scrollable components in applications. If you have tried scrolling through a moderately long list of items in any application using the touchpad on your notebook, you know it can be a real pain.
+Recently I watched the video showing the GreenUI(posted by James Gosling on his blog). He made one very interesting point in the video: "Everything is about scrollbars." GreenUI had built-in support for gestures used heavily when scrolling through lists of items. This was exactly the kind of thing that made scrolling easy. What does such gesture support look like? Imagine for a moment the list is actually a big wheel with all its items written on the outside of it, one by one in regular intervals. The supported gesture for scrolling is then what looks like an attempt to spin such a big wheel. How do you spin a wheel, you ask? You grab one of the items and drag it in direction in which you want the wheel to spin. And the wheel will keep spinning for a while even after you have released it. The speed and duration of such spinning depends on how vigorously you spun the wheel.
+Imagine this functionality in the context of a long list and a touchpad. First, you don't have to navigate to the scrollbar on a side of the list and second, if the list is a bit longer, you just spin it and it will continue rolling for a while, even after your finger has run off the touchpad itself. In recent testing, users not only think it is useful, they think it's cool, and keep spinning the lists subconsciously while thinking about something else with the application open.
+If you skip to the Resources section right now, you can watch a short video showing the final effect.
+Let's have a look now at how difficult is it to do the same with state-of-the-art Swing components.
+A Quick Look at JList
+We will start with a simple example of the list to examine the default behavior of JList. Then we will enhance it to provide support for spinning, and in the end we will have a look to see if and how the same effect can be applied to other components or further modified to suit your application needs.
+To scroll items in JList, you can either use scrollbars or you can press the mouse button over one of the items and move the mouse up or down. This latter behavior is the one we will try to explore here. Built-in scrolling support ofJList, or anything wrapped in ScrollPane, for that matter, makes it scroll as long as the mouse is pressed and moved above/below the list. So we don't have anything to do here. The real job starts when the mouse is released. With the default implementation scrolling stops abruptly, and that is not exactly what we want. What we want to do is to have the list scrolling for while longer and then gradually slow down and eventually stop. Since this involves timing and interpolation of time intervals between events, we will use the TimingFramework, recently graduated to version 1.0, to make our job a bit easier.
+First, let's create a small demo to see the default behavior:
+ 
+import java.awt.Dimension; import javax.swing.JFrame; import javax.swing.JList; import javax.swing.JScrollPane; public class XListDemo { private static final String[] ITEMS = new String[] {"200", "AbstractAction","ActionEvent","BorderLayout","CLOSE", "Click","Dimension","EXIT","ITEMS","JButton","JFrame", "JList","JXPanel","ListModel","ON","SOUTH","String","XList", "actionPerformed","add","args","awt","b","class","e", "event","extends","f","final","import","java","javax", "jdesktop","l","main","me","new","org","pack","param", "private","public","setDefaultCloseOperation", "setPreferredSize","setVisible","static","swing","swingx", "true","void"}; public static void main(String[] args) { JFrame f = new JFrame(); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); JList list = new JList(ITEMS); f.add(new JScrollPane(list)); f.setPreferredSize(new Dimension(200, 200)); f.pack(); f.setVisible(true); } } 
+This simple application has the default scrolling behavior where if one clicks over the item in the list and drags the mouse above or below the list, it will start scrolling and continue scrolling until the mouse button is released. When using a mouse, this behavior is tolerable, but have you ever tried to scroll through longer lists like this while using a touchpad? It is difficult to control the scrolling due to the sensitivity and size of the touchpad.
+Adding the Motion
+What we would like do next is to add a hook to the mouse events to be able to trigger a continuation of the scrolling after the mouse button is released. We will emulate the scrolling behavior ofJList by incrementing setSelectedIndex(). To do so we will use an Animator from the Timing framework. For starters, we will scroll for ten more items and we will do so within one second.
+ 
+list.addMouseListener(new MouseAdapter() { public void mouseReleased(MouseEvent e) { // create PropertySetter, which defines the object // (list) and property ("selectedIndex") to be changed // and the values that it will animate from and to PropertySetter ps = new PropertySetter(list, "selectedIndex", list.getSelectedIndex(), list.getSelectedIndex() + 10); // Create Animator, which will animate ps // for 1000 milliseconds Animator a = new Animator(1000, ps); // start the timer a.start(); }}); 
+This would work, but is far from perfect. The code above scrolls only down, not up; the selected item might run off the visible area; and the scrolling still ends abruptly after scrolling through ten more items. We will address all of those issues in few moments.
+Now let's make sure the selected item always stays visible. To do so we will attach another TimingTarget to theAnimator and tell it to ensure the selected index of the list is visible on the occurrence of a timing event:
+ 
+// This TimingTarget will receive all timing events generated by the // Animator that we defined above a.addTarget(new TimingTargetAdapter() { public void timingEvent(float fraction) { list.scrollRectToVisible( list.getCellBounds(list.getSelectedIndex(), list.getSelectedIndex())); }}); 
+Smooth and Tidy
+Next we will address the smoothness of the scrolling. We will use SplineInterpolator to slow down the pace of the animation towards the end:
+ 
+a.setInterpolator(new SplineInterpolator(0f,.02f,0f,1f)); 
+Last but not least, we will fix the direction of scrolling and make all of the code more robust when we scroll towards the end of boundaries. To do this we must also listen for the start of the scrolling and figure out the scrolling direction. We will create aStateControl class to manage all the changes to the state and modify MouseListener to only set up and trigger the animation.
+Here's the StateControl class:
+ 
+static class StateControl { private static final int TAIL = 10; long stopTime; long startTime; int startY; int startIdx; int stopY; int stopIdx; private Animator a; public void startMotion(final JList list) { if (a != null && a.isRunning()) { a.stop(); } // bail out if there was no mouse movement in between if (startY == stopY) { return; } // calculate time and distance for scrolling int dist = Math.abs(startIdx - stopIdx); // bail out if there was change in item selection if (dist == 0) { return; } int tail = Math.min(TAIL, dist); int stopInt = startY < stopY ? Math.min(list.getSelectedIndex() + tail, list.getModel().getSize()) : Math.max(list.getSelectedIndex() - tail, 0); // create property setter to change selected list item PropertySetter ps = new PropertySetter(list, "selectedIndex", list.getSelectedIndex() , stopInt); a = new Animator((int)((stopTime-startTime)*tail/dist), ps); // add extra target to ensure selected item stays visible. a.addTarget(new TimingTargetAdapter() { public void timingEvent(float fraction) { list.scrollRectToVisible( list.getCellBounds(list.getSelectedIndex(), list.getSelectedIndex())); }}); // mimic slowdown at the end of scrolling a.setInterpolator(new SplineInterpolator(0f,.02f,0f,1f)); // finally start the timer a.start(); } } 
+Here's the change to the mouse listener:
+ 
+final StateControl state = new StateControl(); list.addMouseListener(new MouseAdapter() { public void mousePressed(MouseEvent e) { // store the start possition state.startY = e.getYOnScreen(); state.startIdx = ((JList) e.getSource()).getSelectedIndex(); state.startTime = System.currentTimeMillis(); } public void mouseReleased(MouseEvent e) { // store the end position state.stopY = e.getYOnScreen(); state.stopIdx = ((JList) e.getSource()).getSelectedIndex(); state.stopTime = System.currentTimeMillis(); state.startMotion((JList)e.getSource()); }}); 
+Voila. Now we have a list which will stop scrolling smoothly after the mouse button is released and should feel quite nice. While this is not so obvious while using the mouse, this kind of behavior can be quite handy when invoked from a touchpad or touchscreen.
+If you want to try, there is a link to the Web Start version in the Resources section.
+Transferring the Effect to Other Components
+The last thing to show is how to apply the same effect to other components besides just lists. It is actually quite easy. Let's take our example and swap JList forJTable. There are just few differences to handling lists that we have to take care of:
+We have to set it to single selection only:
+ 
+table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); 
+We have to change the way we obtain the selection index in thestartMotion(JTable table) method due to differences in the API of lists and tables:
+ 
+int stopInt = startY < stopY ? Math.min(table.getSelectedRow() + tail, table.getRowCount()) : Math.max(table.getSelectedRow() - tail, 0); // create property setter to change selected // item in the table PropertySetter ps = new PropertySetter(table.getSelectionModel(), "leadSelectionIndex", table.getSelectedRow() , stopInt); a = new Animator((int)((stopTime-startTime)*tail/dist), ps); // add extra target to ensure selected item stays visible. a.addTarget(new TimingTargetAdapter() { public void timingEvent(float fraction) { table.scrollRectToVisible( table.getCellRect( table.getSelectionModel().getLeadSelectionIndex(), -1, true)); }}); 
+And we are done. That was an easy one, and the same holds true for every other scrollable component. It could get more complicated if one wants to apply it to extend the selection instead of scrolling a single selected item/row selection, but even then the only extra work is to track the direction in which the selection gets extended. The complete listing of the decorate(JTable table) method is in the full listing of the code and can be obtained from the link in the Resourcessection.
+Conclusion
+As illustrated above, you don't need a huge amount of code to implement this interface amenity, which in my experience adds a significant deal of comfort and utility when using alternative pointing devices such as touchpads. It's simple and can be easily applied--so why not try it out and just maybe make the user's life a bit easier?
+The code listed in this article should be usable in other situations, so feel free to copy it and use it in your applications.
+The code above also highlights another problem (or solution) in user interfaces: isn't it much easier and more pleasant to work with applications where things are changing gradually as opposed to abrupt flashes of different screens or elements popping in or out? With gradual change, the brain has time to adjust and keep track of the connection between the elements and screens shown, sparing you those moments where your eyes have to flit around to find where in the world the application just teleported you to. You might not be in Kansas anymore, but at least you'll know how you got there.
+Resources
+Live example (Java Web Start) of the effect described in this article
+Short video(MPEG-4/H.264) of the effect described in this article
+Sample code for this article
+The Timing framework
+  
+http://today.java.net/im/a.gif
+106 Views  Categories:  Tags:
+Average User Rating: No ratings (0 ratings)Average User RatingNo ratings(0 ratings)
+Comments
+0 Comments
+Powered by
+
+About Oracle Technology Network (OTN)
+Oracle Communities DirectoryFAQ
+About OracleOracle and SunRSS FeedsSubscribeCareersContact UsSite MapsLegal NoticesTerms of UseYour Privacy Rights
