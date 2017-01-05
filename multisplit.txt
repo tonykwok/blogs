@@ -1,0 +1,112 @@
+Skip navigation
+Oracle Community DirectoryOracle Community FAQGo Directly To Log inRegister
+Search
+More documents in Article Archive 
+MultiSplitPane: Splitting Without Nesting Blog
+
+Version 2
+Created by chrisadamson on Mar 22, 2006 2:55 PM. Last modified by chrisadamson on Nov 20, 2015 12:12 PM.
+{cs.r.title}
+
+
+Contents
+Basic <  code>MultiSplitPane Usage
+TheMultiSplitLayout Algorithm
+MakingMultiSplitPane Layouts Persistent
+Summary
+Resources
+Long ago, when Xerox defined the leading edge of the desktop GUI, applications flooded the desktop with top-level windows: main windows, alternative views, palettes, inspectors, dialog boxes spewing dialog boxes, editors, and on and on. A whole multitude of overlapping, titled, monochrome rectangles arranged in a way that mimicked a very messy, real-world desktop. Over time, our desire to simulate a messy pile of papers has waned. Modern applications tend to limit the use of top-level windows to alert, configuration, and other ephemeral tasks that seem to warrant a brief slice of the user's undivided attention. Everything else is packed into a tiled main window that's managed by the application and can be reconfigured by the user. GUI frameworks for building reconfigurable tiled main windows are usually called "docking frameworks." Docking frameworks make it possible to mimic a preternaturally neat desktop. Among the many organizational features that most docking frameworks provide is support for interactively resizing tiles by mouse-dragging in the gaps that separate the tiles.
+MultiSplitPane is not a general purpose docking framework. It's a Swing container that just supports a resizable tiled layout of arbitrary components. It's intended to be a generalization of the existing Swing JSplitPanecomponent, which only supports a pair of tiles. TheMultiSplitLayout layout manager recursively arranges its components in row and column groups called "splits." Elements of the layout are separated by gaps called "dividers" that can be moved by the user, in the same way as JSplitPane. The overall layout is defined with a simple tree-structured model that can be stored and retrieved to make the user's layout configuration persistent. The initial layout, before the user has intervened, is defined conventionally, in terms of the layout model and the component's preferred sizes.
+MultiSplitPane differs from components with similar capabilities in that complex dynamic layouts can be defined without nesting or composition. All of the children managed by aMultiSplitPane are arranged in their rows and columns (and rows within columns and columns within rows) end up separated by divider gaps, but not by extra layout-managing containers.MultiSplitPane's layout class,MultiSplitLayout, is also a little unusual in that it exposes a model of the complete layout. Most layout managers have a complex internal model that represents the layout, and some, likeGridBagLayout, even support ad-hoc access to the model. MultiSplitPane provides explicit access to the complete layout model, in the same way that Swing components provide access to their data models. The motivation for this wasn't just flexibility, or separation of concerns. A single explicit layout model means that a more elaborate layout management system, like a docking framework, can be layered on top ofMultiSplitPane without requiring burdensome assumptions about the type or structure of the component hierarchy. Having a separable model also means that the layout can be archived and restored by writing and reading (just) the model. The final section in this article, "Making MultiSplitPaneLayouts Persistent," describes how to do this, using the java.beans (XMLEncoder and XMLDecoder) persistence API.
+BasicMultiSplitPane Usage
+Using MultiSplitPane requires two steps. First, a tree model that specifies the layout is created using theMultiSplitLayout's Split,Divider, and Leaf classes. These classes are static inner classes of MultiSplitLayout, so they have names like MultiSplitLayout.Divider (design note: this seemed preferable to MultiSplitLayoutDividerNode; by importing the static inner classes, we can refer to them by the unqualified names, like Divider andSplit). Leaf nodes represent components, dividers represent the gaps between components that the user can drag around, and splits represent rows or columns. Components are added to the MultiSplitPane with a constraint that names theLeaf (leaf nodes have a name property) that will specify their bounds.
+Here's an example that creates the MultiSplitPaneequivalent of JSplitPane. There are just two components, arranged in a row, with a Divider in between.
+List children = Arrays.asList(new Leaf("left"), new Divider(), new Leaf("right")); Split modelRoot = new Split(); modelRoot.setChildren(children); MultiSplitPane multiSplitPane = new MultiSplitPane(); multiSplitPane.getMultiSplitLayout().setModel(modelRoot); multiSplitPane.add(new JButton("Left Component"), "left"); multiSplitPane.add(new JButton("Right Component"), "right");
+The first block of code creates the model: a Splitnode with three children. The two Leaf children are named "left" and "right". When we add twoJButtons to the MultiSplitPane, we specify the name of the Leaf node that defines their part of the layout with the second constraintContainer.add() argument. The Dividernode in the layout, which appears in between the"left" and "right" Leafnodes just serves as a placeholder for the vertical gap that will be allocated in between the Leaf nodes. The model is shown in Figure 1.
+Figure 1
+Figure 1. Model for Example 1
+To give the example launcher a try, just click the Launch button.
+Web started application launch button: example1
+If you run the example, you'll see that the initial layout of the two buttons respects their preferred sizes, shown in Figure 2. You'll also note that you can change the relative widths of the buttons by dragging in the gap, as you'd expect. If you resize the window, making it wider, all of the extra space is allocated to the right button, as seen in Figure 3. This is because, by default,MultiSplitPane allocates extra space to the last component in a row or a column.
+Figure 2
+Figure 2. Example 1 initial layout
+Figure 3
+Figure 3. Example 1 after horizontal (window) resize
+You can change the way extra space is allocated by setting theweight property of the left and rightLeaf nodes. Weights are used to compute what percentage of the extra space, or space reduction, should be allocated to each sibling in a Split. The total weight for a set of siblings should be 1.0. To allocate space equally in the previous example, we'd give each Leaf a weight of 0.5:
+Leaf left = new Leaf("left"); Leaf right = new Leaf("right"); left.setWeight(0.5); right.setWeight(0.5); List children = Arrays.asList(left, new Divider(), right); MultiSplitLayout.Split modelRoot = new Split(); modelRoot.setChildren(children);
+Figure 4 shows the model for this arrangement.
+Figure 4
+Figure 4. Model for Example 2: 0.5/0.5 weighted layout
+If you try launching this example you'll see that horizontal space is allocated, or deallocated equally, as shown in Figure 5. If you don't move the divider, then the left and right components will not shrink below their minimum widths (which is the same as preferred width for JButtons).
+Web started application launch button: example2
+Figure 5
+Figure 5. Example 2: 0.5/0.5 weighted layout
+It's also probably obvious at this point that defining layout models using the APIs for Split, Leaf, and Divider is a bit tedious for examples. TheMultiSplitLayout class provides a parser for a simple syntax that makes it easier to define layout models for examples or test cases. It's not intended as an archive format (see the "MakingMultiSplitPane Layouts Persistent" section for a discussion of how to load and store MultiSplitLayoutmodels using XML). The syntax uses parentheses for structure and doesn't require one to specify Dividers; they're added automatically. Here's how the previous example would be coded using this syntax:
+String layoutDef = "(ROW (LEAF name=left weight=0.5) (LEAF name=right weight=0.5))"; MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef); MultiSplitPane multiSplitPane = new MultiSplitPane(); multiSplitPane.getMultiSplitLayout().setModel(modelRoot);
+The MultiSplitLayout.Node class is just the superclass for Split, Divider, andLeaf. The parseModel() method can be used to generate a single Leaf or a Split. Note also that the syntax for Leaf nodes can be shortened, if the Leaf doesn't specify a weight, to just the Leaf node name. So the first example could be written like this: (ROW left right).
+What makes MultiSplitPane interesting is that it can support more complex layouts, where rows contain columns that contain rows, and so on. Here's a more complex example, just to show what's possible.
+String layoutDef = "(COLUMN (ROW weight=1.0 left (COLUMN middle.top middle middle.bottom) right) bottom)"; MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef); MultiSplitPane multiSplitPane = new MultiSplitPane(); multiSplitPane.getMultiSplitLayout().setModel(modelRoot); multiSplitPane.add(new JButton("Left Column"), "left"); multiSplitPane.add(new JButton("Right Column"), "right"); multiSplitPane.add(new JButton("Bottom Row"), "bottom"); multiSplitPane.add(new JButton("Middle Column Top"), "middle.top"); multiSplitPane.add(new JButton("Middle"), "middle"); multiSplitPane.add(new JButton("Middle Bottom"), "middle.bottom");
+Figure 6 shows the model that this code creates.
+Figure 6
+Figure 6. Example 3: model of a more complicated layout
+Run this example to get the layout shown in Figure 7.
+Web started application launch button: example3
+Figure 7
+Figure 7. Example 3: screenshot
+If you drag the first vertical Divider in the previous example, you'll see that it's possible to change the size of the left Leaf node to the left of theDivider and the middle column Split node to the right. By default, it's possible to move the divider to the point where either sibling's size is zero. Once you've moved theDivider, the layout algorithm attempts to leave it where it you put it, despite changes to theMultiSplitPane container's bounds (e.g., as a result of resizing the window). The algorithm used by theMultiSplitLayout layout manager to allocate and deallocate space is described in the next section.
+TheMultiSplitLayout Algorithm
+A MultiSplitLayout is defined by a tree model withSplit, Divider, and Leafnodes as described in the previous section. The layout model recursively subdivides the container's boundedRectangle into sequences of rectangles, one per node, arranged in rows or columns. Node rectangles are separated by a fixed dividerSize gap. The layout algorithm is applied to the layout's tree model in two passes. The second pass finalizes the bounds of each node and then sets the bounds of components that correspond to Leaf nodes.
+The initial MultiSplitLayout is defined by the preferred sizes of the MultiSplitPane's children. At this point, the Dividers are considered to be "floating;" i.e., their positions are defined by the preferred sizes of the nodes that flank them. TheMultiSplitLayout node types contribute to the overall layout like this:
+Split: If theSplit is a row (Split.isRowLayout() istrue)
+The preferred width of the Split will be the sum of the preferred widths of its (node) children, plus the widths of the dividers. The preferred height of the Split will be the maximum height of its children. The Split's (node) children will always be laid out left to right and will all have the same height. Additional space, or space reduction, is allocated based on the children's weights (0.0 to 1.0). If no weight is specified, the last node is treated as if its weight was 1.0.
+Split: If theSplit is a column (Split.isRowLayout() isfalse)
+The preferred height of a column Split will be the sum of the preferred heights of its (node) children, plus the heights of the dividers. The preferred width of the columnSplit will be the maximum width of its children. TheSplit's (node) children will always be laid out top to bottom and will all have the same width. Additional space, or space reduction, is allocated based on the children's weights (0.0 to 1.0). If no weight is specified, the last node is treated as if its weight was 1.0. Note: this case is logically the same as aSplit row.
+Leaf
+The preferred size of a Leaf is just the preferred size of the corresponding component; i.e., the component that was added to the layout with a constraint that matches theLeaf node's name. If no such component exists, then0x0 is used.
+Divider
+The preferred width/height of a Divider is just the value of the MultiSplitLayout'sdividerSize property.
+MultiSplitLayout's floatingDividersproperty, initially true, is set to falseby the MultiSplitPane as soon as anyDivider is repositioned. WhenfloatingDividers is false, the right/bottom edge of each Leaf (component) is defined by the location of the Divider that follows it. In other words, once the user moves a Divider, the layout no longer depends on the preferred size of any components; it's defined by the current position of the Dividers and the weights.
+The layout algorithm requires two passes. IffloatingDividers is true, the first pass sets the bounding rectangles of all of nodes to their preferred sizes according to the rules for Split nodes defined above. If floatingDividers is false, then we set the bounding rectangles of all of theSplit/Leaf model nodes so that they occupy the spaces defined by the dividers. The second pass grows or shrinks the layout, if the MultiSplitPane's size has changed. It also takes care of setting the bounds of each component to match the bounds of its Leaf.
+What makes the layout algorithm challenging is that growing and shrinking are not symmetrical. To grow the layout, extra space is added to sibling nodes, according to their weights (if no weights are specified, the last sibling gets 100 percent). Shrinking is similar, so long as none of the nodes shrink below their minimum size. When there's not enough weighted space to absorb all of the reduction that's required, then all of the components are reduced using (implicit) weights based on their current sizes. In other words, when the layout starts to get cramped, the biggest components shrink the most.
+MakingMultiSplitPane Layouts Persistent
+If a user invests some time configuring aMultiSplitLayout by dragging the Dividers around, then they'll reasonably expect the Dividers to appear where they left them when the application is restarted. The configuration of a MultiSplitLayout is defined by the tree model, which is easily read or written as an XML file using the Java beans XMLEncoderand XMLDecoderclasses.
+Here's a code fragment example that saves theMultiSplitLayout model. It's run when the application is about to exit.
+XMLEncoder e = new XMLEncoder(new BufferedOuputStream( new FileOutputStream(filename))); Node model = multiSplitPane.getMultiSplitLayout().getModel(); e.writeObject(model); e.close();
+The code that loads the MultiSplitLayout model is similar. When the application initializes, we check to see if the model was saved in a previous session. If it was, then we set theMultiSplitLayout's floatingDividersproperty to false, which means that the initial layout should not be based on each component's preferred size. If we don't manage to load a model (e.g., because this is the first time the application was run), then we create the model from scratch.
+String layoutDef = "(COLUMN (ROW weight=1.0 left (COLUMN middle.top middle middle.bottom) right) bottom)"; try { XMLDecoder d = new XMLDecoder(new BufferedInputStream( new FileInputStream(filename))); Node model = (Node)(d.readObject()); mspLayout.setModel(model); mspLayout.setFloatingDividers(false); d.close(); } catch (Exception exc) { Node model = MultiSplitLayout.parseModel(layoutDef); mspLayout.setModel(model); }
+You can run an example that saves and restores theMultiSplitLayout model by pressing the orange launch button. Rather than storing the model's XML archive in a file under the user's home directory, which would require access privileges and signing the example app, we've used the JNLP PersistenceService API. You can see how by taking a look at theopenResourceInput and openResourceOutputmethods in Example.java. Figure 8 shows the restored layout.
+Web started application launch button: example3
+Figure 8
+Figure 8. Example 4: layout changes are persistent
+Making an entire application GUI's configuration persistent is beyond the scope of this article; however, it's worth noting that one additional trick is used to restore the size of the example window. If the layout model is successfully loaded, theMultiSplitPane's preferred size is set to match the root of the model:
+ multiSplitPane.setPreferredSize(model.getBounds().getSize());
+This is sufficient for a simple example application. Saving the the persistent state for an entire GUI can be the subject of a future article.
+Summary
+This article has focused on MultiSplitPane basics: how to use it, how the layout algorithm works, and how to save and restore layouts using the standard java.beans persistence API.MultiSplitPane does have other features and capabilities that you can learn about by surveying the Javadoc. For example:
+It supports the continuousLayout property, as inJSplitPane, which defers layout until after the user has finished dragging a divider (or hits Esc to cancel the gesture).
+Dynamic changes to the layout model are possible. For example, one could add/remove a Leaf or an entireSplit, or make a coordinated change to a set ofDividers. CallingMultiSplitPane.revalidate() causes the managed components to be synched with the model.
+MultiSplitPane is accessible; it overridesgetAccessibleContext() to provide a customAccessibleJComponent.
+Resources
+MultiSplitPane source: MultiSplit.zip
+  
+http://today.java.net/im/a.gif
+2526 Views  Categories:  Tags:
+Average User Rating: No ratings (0 ratings)Average User RatingNo ratings(0 ratings)
+Comments
+3 Comments
+ philturner Newbie
+philturner Feb 14, 2010 11:12 PM
+
+The Resources link  seems to be broken.  Anyone know if it is still available and where? //
+Like Show 0 Likes(0) Actions 
+ alaamurad Newbie
+alaamurad Apr 24, 2010 8:59 PM
+
+Thanks a lot about this great components , but when I used it and tried to remove components from it everything goes wrong, Problem 1-Add say 5 buttons. (one row) 2-Start play with the dividers. (very impotent , if you don't use the divider the panel works OK) 3-Have some code inside the button to remove it from the list (I actually wanted to have JPanel to popup ) . Now the the list is missed up , I tired everything in the last week ,including rebulid the whole model and components . but still the layout is missed up . Any help , I know it's old blog but we used your component in a share trading software ! but I'm almost giving up ! Best Regards, Alaa //
+Like Show 0 Likes(0) Actions 
+This comment has been hidden. This can happen if the comment has been hidden by a moderator, or has been reported as abusive.
+Powered by
+
+About Oracle Technology Network (OTN)
+Oracle Communities DirectoryFAQ
+About OracleOracle and SunRSS FeedsSubscribeCareersContact UsSite MapsLegal NoticesTerms of UseYour Privacy RightsCookie Preferences
